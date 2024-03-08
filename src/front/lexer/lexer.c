@@ -12,7 +12,7 @@ isKeyword(char* buf, size_t* offset, size_t len) {
   log_debug("keywords size is %lu\n", sizeof(c90KeyWords) / sizeof(char*));
   for (size_t i = 0; i < sizeof(c90KeyWords) / sizeof(char*); i++) {
     if (0 == strncmp(c90KeyWords[i], buf + *offset, len)) {
-      log_debug("get token {%s}\n", c90KeyWords[i]);
+      log_debug("get keyword {%s}\n", c90KeyWords[i]);
       return 1;
     }
   }
@@ -35,7 +35,7 @@ parseIdent(char* buf, size_t* offset) {
       break;
     }
   }
-  log_info("get token [%s]\n", buf + *offset);
+  // log_info("get token [%s]", buf + *offset);
   isKeyword(buf, offset, off - *offset);
   *offset = off;
   return 0;
@@ -47,9 +47,8 @@ skipBlank(char* buf, size_t* offset) {
     if (buf[*offset] == '\0') break;
     if (isblank(buf[*offset])) {
       *offset += 1;
-    } else {
+    } else
       break;
-    }
   }
   return 0;
 }
@@ -58,35 +57,35 @@ static int
 parseSymbol(char* buf, size_t* offset) {
   switch (buf[*offset]) {
     case '(':
-      log_info("get token [(]\n");
+      log_debug("get token [(]");
       *offset += 1;
       break;
     case ')':
-      log_info("get token [)]\n");
+      log_debug("get token [)]");
       *offset += 1;
       break;
     case '{':
-      log_info("get token [{]\n");
+      log_debug("get token [{]");
       *offset += 1;
       break;
     case '}':
-      log_info("get token [}]\n");
+      log_debug("get token [}]");
       *offset += 1;
       break;
     case ';':
-      log_info("get token [;]\n");
+      log_debug("get token [;]");
       *offset += 1;
       break;
     case '=':
-      log_info("get token [=]\n");
+      log_debug("get token [=]");
       *offset += 1;
       break;
     case '*':
-      log_info("get token [*]\n");
+      log_debug("get token [*]");
       *offset += 1;
       break;
     default:
-      log_error("get unknown toke [%s]\n", buf + *offset);
+      log_debug("get unknown toke [%s]", buf + *offset);
       *offset += 1;
       break;
   }
@@ -97,51 +96,38 @@ char non_sep[] = {'"', '$', '`', '@', 0x27};
 static int
 isSep(char sep) {
   if (sep <= 0x7e && sep >= 0x20) {
-    if (isalnum(sep) || sep == '_') {
-      return 0;
-    }
-    for (int i = 0; i < 5; i++) {
+    if (isalnum(sep) || sep == '_') return 0;
+    for (int i = 0; i < 5; i++)
       if (sep == non_sep[i]) return 0;
-    }
     return 1;
-  } else {
+  } else
     return 1;
-  }
   return 1;
 }
 
 static int
 parse(char* buf, size_t* offset) {
-  size_t current_offset = *offset;
-  size_t new_offset = 0;
-
+  size_t new_offset;
   for (;;) {
-    new_offset = 0;
+    skipBlank(buf, offset);
+    new_offset = *offset;
+    if (isdigit(buf[new_offset])) {
+      parseDigit(buf, &new_offset);
+    } else if (isalpha(buf[new_offset]) || '_' == buf[new_offset]) {
+      parseIdent(buf, &new_offset);
+    } else if ('\n' == buf[new_offset])
+      break;
+    else
+      parseSymbol(buf, &new_offset);
+
     char* token_buf = NULL;
-    size_t len = 0;
-    for (;;) {
-      len += 1;
-      if (isSep(buf[*offset + len])) break;
-    }
+    size_t len = new_offset - *offset;
     token_buf = strndup(buf + *offset, len);
     token_buf[len] = '\0';
-    log_fatal("read the token [%s]\n", token_buf);
-    *offset += len;
-    skipBlank(buf, offset);
-    if (isdigit(token_buf[new_offset])) {
-      // possible number
-      parseDigit(token_buf, &new_offset);
-    } else if (isalpha(token_buf[new_offset]) || '_' == token_buf[new_offset]) {
-      parseIdent(token_buf, &new_offset);
-    } else if (isblank(token_buf[new_offset])) {
-      new_offset += 1;
-    } else if ('\n' == token_buf[new_offset]) {
-      break;
-    } else {
-      parseSymbol(token_buf, &new_offset);
-    }
-  }
+    log_info("get token [%s]", token_buf);
 
+    *offset = new_offset;
+  }
   return 0;
 }
 

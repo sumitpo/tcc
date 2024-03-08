@@ -1,3 +1,4 @@
-int instrSchedu(){
+int
+instrSchedu() {
   return 0;
 }
