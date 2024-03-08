@@ -6,8 +6,13 @@ project(tcc)
 SET(CMAKE_C_FLAGS_RELEASE "-O3 -Wall -Wextra")
 SET(CMAKE_C_FLAGS_DEBUG "-g -Wall -Wextra")
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  add_definitions(-DLOG_LEVEL_DEBUG)
+else()
+  add_definitions(-DLOG_LEVEL_INFO)
+endif()
+
 add_definitions(-DLOG_USE_COLOR)
-add_definitions(-DLOG_LEVEL_INFO)
 
 FILE(GLOB_RECURSE SRCS RELATIVE ${CMAKE_SOURCE_DIR} "src/*.c" "3rd/log/*.c")
 # set(SRCS ./src/*.c)
